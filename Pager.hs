@@ -14,8 +14,11 @@ pageFile f = do
 
 showInPager vt y sx sy header fstr = do
     let stopPlay      = shutdown vt >> return ()
-        pageIncrement = if [] == stxt then stopPlay else showInPager vt (y + 1) sx sy header fstr
+        lastPage      = length stxt < (fromIntegral sy)
+        pageIncrement = if lastPage then stopPlay else showInPager vt (y + 1) sx sy header fstr
         pageDecrement = showInPager vt (y - 1) sx sy header fstr
+        refreshPage   = showInPager vt y sx sy header fstr
+        defaultAction = if lastPage then stopPlay else refreshPage
         stxt          = getPage (fromIntegral sx) (fromIntegral sy) y fstr
 
     update vt (current_pic header stxt)
@@ -27,7 +30,7 @@ showInPager vt y sx sy header fstr = do
               EvKey (KASCII 'q') [] -> stopPlay
               EvResize nx ny        -> showInPager vt (min y (toEnum ny - 2))
                                                (toEnum nx) (toEnum ny) header fstr
-              _                     -> showInPager vt y sx sy header fstr
+              _                     -> defaultAction
 
 current_pic header lines =
     let hAttr = Attr (SetTo bold) (SetTo green) (SetTo bright_black) in
