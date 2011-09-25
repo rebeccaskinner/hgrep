@@ -5,6 +5,7 @@ import Graphics.Vty.Attributes
 import Data.Word
 import System.IO
 import FileOps
+import Text.Printf
 
 pageFile f = do
     vt <- mkVty
@@ -14,14 +15,16 @@ pageFile f = do
 
 showInPager vt y sx sy header fstr = do
     let stopPlay      = shutdown vt >> return ()
-        lastPage      = length stxt < (fromIntegral sy)
-        pageIncrement = if lastPage then stopPlay else showInPager vt (y + 1) sx sy header fstr
+        lastPage      = length stxt < fromIntegral sy
+        pageIncrement = if lastPage
+                           then stopPlay
+                           else showInPager vt (y + 1) sx sy header fstr
         pageDecrement = showInPager vt (y - 1) sx sy header fstr
         refreshPage   = showInPager vt y sx sy header fstr
         defaultAction = if lastPage then stopPlay else refreshPage
         stxt          = getPage (fromIntegral sx) (fromIntegral sy) y fstr
 
-    update vt (current_pic header stxt)
+    update vt (currentPic header stxt)
     k <- next_event vt
     case k of EvKey (KASCII ' ') [] -> pageIncrement
               EvKey KDown        [] -> pageIncrement
@@ -32,12 +35,13 @@ showInPager vt y sx sy header fstr = do
                                                (toEnum nx) (toEnum ny) header fstr
               _                     -> defaultAction
 
-current_pic header lines =
-    let hAttr = Attr (SetTo bold) (SetTo green) (SetTo bright_black) in
-    pic_for_image $
-    string hAttr header <->
-        string def_attr "\n" <->
-        (vert_cat ( map (string def_attr) lines))
+currentPic header lines =
+    let hAttr      = Attr (SetTo bold) (SetTo green) (SetTo bright_black)
+        nAttr      = Attr (SetTo bold) (SetTo yellow) (SetTo black)
+        spacer     = string def_attr " "
+        digitWidth = length . show . length
+        numFmt n   = printf "%0*d" (digitWidth lines) (n :: Int) :: String in
 
--- main = do
---     getArgs >>= (return . head) >>= pageFile
+    pic_for_image $ string hAttr header <-> spacer <->
+        vert_cat (zipWith (\x y -> string nAttr (numFmt y) <|>
+            spacer <|> string def_attr x) lines [1..])
