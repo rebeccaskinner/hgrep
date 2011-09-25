@@ -1,10 +1,13 @@
 module FileOps where
 import Data.List.Split
+import Data.List.Utils
 import Utils
+
+splitKeepTrailing sep str = map (\x -> if [] == x then sep else x) $ splitOn sep str
 
 -- Break the string 's' into lines that are at most 'n' characters wide, then
 -- return a list of lines
-hardWrapLines n s = concatMap (chunk n) $ wordsBy (=='\n') s
+hardWrapLines n s = concatMap (chunk n) $ splitKeepTrailing "\n" s
 
 -- Get a version of string 's' wrapped to 'n' characters using '\n' as the
 -- newline character
