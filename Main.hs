@@ -1,5 +1,5 @@
 import System.Directory
-import System (getArgs)
+import System.Environment (getArgs)
 import Text.Regex.PCRE
 import DirTraverse
 import Pager

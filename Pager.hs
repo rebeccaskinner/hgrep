@@ -1,15 +1,17 @@
 module Pager where
-import System (getArgs)
+import System.Environment (getArgs)
 import Graphics.Vty
+import Graphics.Vty.Prelude
 import Graphics.Vty.Attributes
+import Data.Default (def)
 import Data.Word
 import System.IO
 import FileOps
 import Text.Printf
 
 pageFile f = do
-    vt <- mkVty
-    DisplayRegion w h <- display_bounds $ terminal vt
+    vt <- mkVty def
+    (w,h) <- displayBounds $ outputIface vt
     contents <- readFile f
     showInPager vt 0 w h f contents
 
@@ -27,26 +29,26 @@ showInPager vt y sx sy header fstr = do
         stxt          = getPage (fromIntegral sx) (fromIntegral sy) y fstr
 
     update vt (currentPic header (fromIntegral (sy-1) * y) stxt)
-    k <- next_event vt
-    case k of EvKey (KASCII ' ') [] -> pageIncrement
+    k <- nextEvent vt
+    case k of EvKey (KChar ' ') [] -> pageIncrement
               EvKey KDown        [] -> pageIncrement
               EvKey KUp          [] -> pageDecrement
               EvKey KEsc         [] -> stopPlay
-              EvKey (KASCII 'q') [] -> stopPlay
+              EvKey (KChar 'q') [] -> stopPlay
               EvResize nx ny        -> showInPager vt (min y (toEnum ny - 2))
                                                (toEnum nx) (toEnum ny) header fstr
               _                     -> defaultAction
 
 currentPic header offset lines =
-    let hAttr      = Attr (SetTo bold) (SetTo green) (SetTo bright_black)
+    let hAttr      = Attr (SetTo bold) (SetTo green) (SetTo brightBlack)
         nAttr      = Attr (SetTo bold) (SetTo yellow) (SetTo black)
-        spacer     = string def_attr " "
+        spacer     = string defAttr " "
         digitWidth = length . show
         numFmt :: Int -> String
         numFmt n   = printf "%0*d"
                         (digitWidth (offset + length lines)) (offset + n)
     in
 
-    pic_for_image $ string hAttr header <-> spacer <->
-        vert_cat (zipWith (\x y -> string nAttr (numFmt y) <|>
-            spacer <|> string def_attr x) lines [1..])
+    picForImage $ string hAttr header <-> spacer <->
+        vertCat (zipWith (\x y -> string nAttr (numFmt y) <|>
+            spacer <|> string defAttr x) lines [1..])
